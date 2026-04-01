@@ -21,3 +21,6 @@ pnpm-debug.log*
 .DS_Store
 .idea
 .vscode
+
+.codex
+README_ARCHITECTURE.md
