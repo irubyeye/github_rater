@@ -1,1 +1,1 @@
-export const scoreFormulaVersion = 'v1';
+export const SCORE_FORMULA_VERSION = 'v1';
