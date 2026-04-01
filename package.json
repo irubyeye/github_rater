@@ -11,11 +11,13 @@
     "test": "jest"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.0.0",
+    "bottleneck": "^2.19.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "joi": "^17.13.3",
