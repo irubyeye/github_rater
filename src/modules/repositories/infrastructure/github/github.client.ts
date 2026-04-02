@@ -1,8 +1,8 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable } from '@nestjs/common';
 import Bottleneck from 'bottleneck';
 import { firstValueFrom } from 'rxjs';
+import { GITHUB_CLIENT_CONFIG, GithubClientConfig } from './github.config';
 
 export interface GithubRepositoryApiItem {
   id: number;
@@ -31,19 +31,15 @@ interface GithubSearchParams {
 @Injectable()
 export class GithubClient {
   private readonly limiter: Bottleneck;
-  private readonly token: string;
-  private readonly timeoutMs: number;
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly configService: ConfigService
+    @Inject(GITHUB_CLIENT_CONFIG) private readonly config: GithubClientConfig
   ) {
     this.limiter = new Bottleneck({
-      maxConcurrent: this.configService.get<number>('outbound.maxConcurrent', 2),
-      minTime: this.configService.get<number>('outbound.minTimeMs', 300)
+      maxConcurrent: this.config.maxConcurrent,
+      minTime: this.config.minTimeMs
     });
-    this.token = this.configService.get<string>('github.token', '');
-    this.timeoutMs = this.configService.get<number>('github.requestTimeoutMs', 5000);
   }
 
   async searchRepositories(params: GithubSearchParams): Promise<GithubRepositoryApiItem[]> {
@@ -62,8 +58,8 @@ export class GithubClient {
               per_page: params.perPage,
               page
             },
-            headers: this.token ? { Authorization: `Bearer ${this.token}` } : undefined,
-            timeout: this.timeoutMs
+            headers: this.config.token ? { Authorization: `Bearer ${this.config.token}` } : undefined,
+            timeout: this.config.requestTimeoutMs
           })
         )
       );
