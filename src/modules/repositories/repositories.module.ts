@@ -5,6 +5,7 @@ import {
   REPOSITORIES_CACHE_TTL_SECONDS,
   SearchAndScoreRepositoriesUseCase
 } from './application/use-cases/search-and-score-repositories.use-case';
+import { RepositoriesController } from './api/repositories.controller';
 import { RepositoryScoringService } from './domain/services/repository-scoring.service';
 import { CacheKeyFactory } from './infrastructure/cache/cache-key.factory';
 import { InFlightRequestsRegistry } from './infrastructure/cache/in-flight-requests.registry';
@@ -26,6 +27,7 @@ import {
 
 @Module({
   imports: [HttpModule],
+  controllers: [RepositoriesController],
   providers: [
     {
       provide: GITHUB_CLIENT_CONFIG,
