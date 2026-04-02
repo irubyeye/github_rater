@@ -1,6 +1,10 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { CacheKeyFactory } from './infrastructure/cache/cache-key.factory';
+import { InFlightRequestsRegistry } from './infrastructure/cache/in-flight-requests.registry';
+import { InMemoryQueryCacheService } from './infrastructure/cache/in-memory-query-cache.service';
+import { QUERY_CACHE, queryCacheProvider } from './infrastructure/cache/cache.provider';
 import { GithubClient } from './infrastructure/github/github.client';
 import {
   createGithubClientConfig,
@@ -25,11 +29,15 @@ import { GithubRepositoryProviderImpl } from './infrastructure/github/github.rep
       inject: [ConfigService],
       useFactory: createGithubSearchConfig
     },
+    queryCacheProvider,
+    InMemoryQueryCacheService,
+    CacheKeyFactory,
+    InFlightRequestsRegistry,
     GithubClient,
     GithubMapper,
     GithubRepositoriesSearchQueryService,
     GithubRepositoryProviderImpl
   ],
-  exports: [GithubRepositoryProviderImpl]
+  exports: [QUERY_CACHE, CacheKeyFactory, InFlightRequestsRegistry, GithubRepositoryProviderImpl]
 })
 export class RepositoriesModule {}
