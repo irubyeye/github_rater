@@ -9,6 +9,7 @@ import {
   GITHUB_SEARCH_CONFIG
 } from './infrastructure/github/github.config';
 import { GithubMapper } from './infrastructure/github/github.mapper';
+import { GithubRepositoriesSearchQueryService } from './infrastructure/github/github-repositories-search-query.service';
 import { GithubRepositoryProviderImpl } from './infrastructure/github/github.repository.provider';
 
 @Module({
@@ -26,6 +27,7 @@ import { GithubRepositoryProviderImpl } from './infrastructure/github/github.rep
     },
     GithubClient,
     GithubMapper,
+    GithubRepositoriesSearchQueryService,
     GithubRepositoryProviderImpl
   ],
   exports: [GithubRepositoryProviderImpl]

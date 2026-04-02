@@ -7,22 +7,19 @@ import { Repository } from '../../domain/models/repository.model';
 import { GithubClient } from './github.client';
 import { GITHUB_SEARCH_CONFIG, GithubSearchConfig } from './github.config';
 import { GithubMapper } from './github.mapper';
+import { GithubRepositoriesSearchQueryService } from './github-repositories-search-query.service';
 
 @Injectable()
 export class GithubRepositoryProviderImpl implements GithubRepositoryProvider {
-  private readonly queryPartBuilders: Array<(params: SearchRepositoriesParams) => string | null> = [
-    (params) => (params.language ? `language:${params.language}` : null),
-    (params) => (params.createdAfter ? `created:>${params.createdAfter}` : null)
-  ];
-
   constructor(
     private readonly githubClient: GithubClient,
     private readonly githubMapper: GithubMapper,
+    private readonly githubRepositoriesSearchQueryService: GithubRepositoriesSearchQueryService,
     @Inject(GITHUB_SEARCH_CONFIG) private readonly config: GithubSearchConfig
   ) {}
 
   async searchRepositories(params: SearchRepositoriesParams): Promise<Repository[]> {
-    const q = this.buildQuery(params);
+    const q = this.githubRepositoriesSearchQueryService.buildSearchRepositoriesQuery(params);
     const items = await this.githubClient.searchRepositories({
       q,
       perPage: this.config.fetchPerPage,
@@ -31,17 +28,5 @@ export class GithubRepositoryProviderImpl implements GithubRepositoryProvider {
     });
 
     return items.map((item) => this.githubMapper.toRepository(item));
-  }
-
-  private buildQuery(params: SearchRepositoriesParams): string {
-    const queryParts = this.queryPartBuilders
-      .map((builder) => builder(params))
-      .filter((part): part is string => part !== null);
-
-    if (queryParts.length === 0) {
-      return 'stars:>=0';
-    }
-
-    return queryParts.join(' ');
   }
 }
