@@ -9,6 +9,8 @@ import { GITHUB_SEARCH_CONFIG, GithubSearchConfig } from './github.config';
 import { GithubMapper } from './github.mapper';
 import { GithubRepositoriesSearchQueryService } from './github-repositories-search-query.service';
 
+export const GITHUB_REPOSITORY_PROVIDER = Symbol('GITHUB_REPOSITORY_PROVIDER');
+
 @Injectable()
 export class GithubRepositoryProviderImpl implements GithubRepositoryProvider {
   constructor(
