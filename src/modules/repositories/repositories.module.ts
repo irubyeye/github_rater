@@ -1,6 +1,7 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { UpstreamErrorHandlerService } from '../../common/errors/upstream-error-handler.service';
 import {
   REPOSITORIES_CACHE_TTL_SECONDS,
   SearchAndScoreRepositoriesUseCase
@@ -63,6 +64,7 @@ import {
     InMemoryQueryCacheService,
     CacheKeyFactory,
     InFlightRequestsRegistry,
+    UpstreamErrorHandlerService,
     GithubClient,
     GithubMapper,
     GithubRepositoriesSearchQueryService,

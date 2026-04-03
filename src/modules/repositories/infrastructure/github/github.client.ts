@@ -1,8 +1,8 @@
 import { HttpService } from '@nestjs/axios';
-import { HttpException, HttpStatus, Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { AxiosError } from 'axios';
+import { Inject, Injectable } from '@nestjs/common';
 import Bottleneck from 'bottleneck';
 import { firstValueFrom } from 'rxjs';
+import { UpstreamErrorHandlerService } from '../../../../common/errors/upstream-error-handler.service';
 import { GITHUB_CLIENT_CONFIG, GithubClientConfig } from './github.config';
 
 export interface GithubRepositoryApiItem {
@@ -35,6 +35,7 @@ export class GithubClient {
 
   constructor(
     private readonly httpService: HttpService,
+    private readonly upstreamErrorHandlerService: UpstreamErrorHandlerService,
     @Inject(GITHUB_CLIENT_CONFIG) private readonly config: GithubClientConfig
   ) {
     this.limiter = new Bottleneck({
@@ -82,24 +83,17 @@ export class GithubClient {
 
       return response.data;
     } catch (error) {
-      this.handleGithubError(error);
+      this.upstreamErrorHandlerService.handle(error, {
+        serviceName: 'GitHub',
+        timeoutMessage: 'GitHub request timed out',
+        unavailableMessage: 'GitHub service is currently unavailable',
+        rateLimitMessage: 'GitHub rate limit exceeded',
+        isRateLimited: (axiosError) => {
+          const status = axiosError.response?.status;
+          const remaining = axiosError.response?.headers?.['x-ratelimit-remaining'];
+          return status === 429 || (status === 403 && String(remaining) === '0');
+        }
+      });
     }
-  }
-
-  private handleGithubError(error: unknown): never {
-    const axiosError = error as AxiosError;
-
-    if (axiosError.code === 'ECONNABORTED') {
-      throw new ServiceUnavailableException('GitHub request timed out');
-    }
-
-    const status = axiosError.response?.status;
-    const remaining = axiosError.response?.headers?.['x-ratelimit-remaining'];
-
-    if (status === 429 || (status === 403 && String(remaining) === '0')) {
-      throw new HttpException('GitHub rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    throw new ServiceUnavailableException('GitHub service is currently unavailable');
   }
 }
