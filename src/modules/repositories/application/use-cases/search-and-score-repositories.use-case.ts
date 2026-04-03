@@ -43,29 +43,27 @@ export class SearchAndScoreRepositoriesUseCase {
   async execute(input: SearchAndScoreRepositoriesInput): Promise<RepositoriesResponse> {
     const page = this.normalizePage(input.page);
     const limit = this.normalizeLimit(input.limit);
-    const cacheKey = this.cacheKeyFactory.create({
-      language: input.language,
-      createdAfter: input.createdAfter,
-      page,
-      limit,
-      scoreFormulaVersion: this.repositoryScoringService.scoreFormulaVersion
-    });
+    const processedRepositories = await this.getProcessedRepositories(input);
+    return this.paginateAndShape(processedRepositories, page, limit);
+  }
 
-    const cached = await this.queryCache.get<RepositoriesResponse>(cacheKey);
+  private async getProcessedRepositories(
+    input: SearchAndScoreRepositoriesInput
+  ): Promise<ScoredRepository[]> {
+    const cacheKey = this.buildBaseCacheKey(input.language, input.createdAfter);
+    const cached = await this.queryCache.get<ScoredRepository[]>(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const inFlight = this.inFlightRequestsRegistry.get<RepositoriesResponse>(cacheKey);
+    const inFlight = this.inFlightRequestsRegistry.get<ScoredRepository[]>(cacheKey);
     if (inFlight) {
       return inFlight;
     }
 
-    const request = this.fetchAndBuildResponse({
+    const request = this.fetchAndProcessRepositories({
       language: input.language,
       createdAfter: input.createdAfter,
-      page,
-      limit,
       cacheKey
     }).finally(() => {
       this.inFlightRequestsRegistry.delete(cacheKey);
@@ -75,13 +73,19 @@ export class SearchAndScoreRepositoriesUseCase {
     return request;
   }
 
-  private async fetchAndBuildResponse(params: {
+  private buildBaseCacheKey(language?: string, createdAfter?: string): string {
+    return this.cacheKeyFactory.createBaseKey({
+      language,
+      createdAfter,
+      scoreFormulaVersion: this.repositoryScoringService.scoreFormulaVersion
+    });
+  }
+
+  private async fetchAndProcessRepositories(params: {
     language?: string;
     createdAfter?: string;
-    page: number;
-    limit: number;
     cacheKey: string;
-  }): Promise<RepositoriesResponse> {
+  }): Promise<ScoredRepository[]> {
     const repositories = await this.githubRepositoryProvider.searchRepositories({
       language: params.language,
       createdAfter: params.createdAfter
@@ -91,9 +95,8 @@ export class SearchAndScoreRepositoriesUseCase {
       .scoreRepositories(repositories)
       .sort((a, b) => b.popularityScore - a.popularityScore);
 
-    const response = this.paginateAndShape(scoredRepositories, params.page, params.limit);
-    await this.queryCache.set(params.cacheKey, response, this.cacheTtlSeconds);
-    return response;
+    await this.queryCache.set(params.cacheKey, scoredRepositories, this.cacheTtlSeconds);
+    return scoredRepositories;
   }
 
   private paginateAndShape(items: ScoredRepository[], page: number, limit: number): RepositoriesResponse {
