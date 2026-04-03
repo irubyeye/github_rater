@@ -147,7 +147,21 @@ export class SearchAndScoreRepositoriesUseCase {
 
     const scoredRepositories = this.repositoryScoringService
       .scoreRepositories(repositories)
-      .sort((a, b) => b.popularityScore - a.popularityScore);
+      .sort((a, b) => {
+        if (b.popularityScore !== a.popularityScore) {
+          return b.popularityScore - a.popularityScore;
+        }
+
+        if (b.stars !== a.stars) {
+          return b.stars - a.stars;
+        }
+
+        if (b.forks !== a.forks) {
+          return b.forks - a.forks;
+        }
+
+        return a.id - b.id;
+      });
 
     await this.queryCache.set(params.cacheKey, scoredRepositories, this.cacheTtlSeconds);
     this.appLoggerService.info(
