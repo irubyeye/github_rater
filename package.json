@@ -11,7 +11,9 @@
     "test": "jest",
     "test:e2e": "jest --config test/jest-e2e.json",
     "test:e2e:live": "jest --config test/jest-e2e-live.json",
-    "test:load": "node test/load/repositories.load.js"
+    "test:load": "node test/load/repositories.load.js",
+    "test:load:100": "LOAD_TEST_LIMIT=100 node test/load/repositories.load.js",
+    "test:load:100:nocache": "LOAD_TEST_LIMIT=100 LOAD_TEST_NO_CACHE=true node test/load/repositories.load.js"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.0",
