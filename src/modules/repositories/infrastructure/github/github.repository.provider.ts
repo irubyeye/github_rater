@@ -26,7 +26,6 @@ export class GithubRepositoryProviderImpl implements GithubRepositoryProvider {
       q,
       perPage: this.config.fetchPerPage,
       maxPages: this.config.maxFetchPages,
-      maxRepositories: this.config.maxFetchRepositories
     });
 
     return items.map((item) => this.githubMapper.toRepository(item));

@@ -26,7 +26,6 @@ interface GithubSearchParams {
   q: string;
   perPage: number;
   maxPages: number;
-  maxRepositories: number;
 }
 
 @Injectable()
@@ -48,10 +47,6 @@ export class GithubClient {
     const allItems: GithubRepositoryApiItem[] = [];
 
     for (let page = 1; page <= params.maxPages; page += 1) {
-      if (allItems.length >= params.maxRepositories) {
-        break;
-      }
-
       const response = await this.fetchRepositoriesPage(params.q, params.perPage, page);
 
       const pageItems = response.items ?? [];
@@ -62,7 +57,7 @@ export class GithubClient {
       allItems.push(...pageItems);
     }
 
-    return allItems.slice(0, params.maxRepositories);
+    return allItems;
   }
 
   private async fetchRepositoriesPage(q: string, perPage: number, page: number): Promise<GithubSearchResponse> {
