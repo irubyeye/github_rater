@@ -48,13 +48,20 @@ import {
     {
       provide: RepositoryScoringService,
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) =>
-        new RepositoryScoringService({
+      useFactory: (configService: ConfigService) => {
+        const formulaVersion = configService.get<string>('scoring.formulaVersion');
+        if (!formulaVersion) {
+          throw new Error('scoring.formulaVersion is required');
+        }
+
+        return new RepositoryScoringService({
           starsWeight: configService.get<number>('scoring.starsWeight', 0.5),
           forksWeight: configService.get<number>('scoring.forksWeight', 0.3),
           recencyWeight: configService.get<number>('scoring.recencyWeight', 0.2),
-          recencyDecay: configService.get<number>('scoring.recencyDecay', 0.03)
-        })
+          recencyDecay: configService.get<number>('scoring.recencyDecay', 0.03),
+          formulaVersion
+        });
+      }
     },
     {
       provide: GITHUB_REPOSITORY_PROVIDER,

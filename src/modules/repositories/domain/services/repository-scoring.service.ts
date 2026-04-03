@@ -1,6 +1,5 @@
 import { Repository } from '../models/repository.model';
 import { RepositoryScoreBreakdown } from '../models/repository-score-breakdown.model';
-import { SCORE_FORMULA_VERSION } from '../models/score-formula-version.model';
 import { ScoredRepository } from '../models/scored-repository.model';
 
 export interface RepositoryScoringConfig {
@@ -8,9 +7,10 @@ export interface RepositoryScoringConfig {
   forksWeight: number;
   recencyWeight: number;
   recencyDecay: number;
+  formulaVersion: string;
 }
 
-const defaultConfig: RepositoryScoringConfig = {
+const defaultConfig: Omit<RepositoryScoringConfig, 'formulaVersion'> = {
   starsWeight: 0.5,
   forksWeight: 0.3,
   recencyWeight: 0.2,
@@ -18,14 +18,21 @@ const defaultConfig: RepositoryScoringConfig = {
 };
 
 export class RepositoryScoringService {
-  readonly scoreFormulaVersion = SCORE_FORMULA_VERSION;
+  readonly scoreFormulaVersion: string;
   private readonly config: RepositoryScoringConfig;
 
   constructor(config: Partial<RepositoryScoringConfig> = {}) {
+    const formulaVersion = config.formulaVersion ?? process.env.SCORE_FORMULA_VERSION;
+    if (!formulaVersion) {
+      throw new Error('SCORE_FORMULA_VERSION is required');
+    }
+
     this.config = {
       ...defaultConfig,
-      ...config
+      ...config,
+      formulaVersion
     };
+    this.scoreFormulaVersion = this.config.formulaVersion;
   }
 
   scoreRepository(repository: Repository, now: Date = new Date()): ScoredRepository {

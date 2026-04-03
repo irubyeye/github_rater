@@ -40,7 +40,7 @@ describe('SearchAndScoreRepositoriesUseCase', () => {
       new InMemoryQueryCacheService(),
       new InFlightRequestsRegistry(),
       new CacheKeyFactory(),
-      new RepositoryScoringService(),
+      new RepositoryScoringService({ formulaVersion: 'v1' }),
       300,
       appLoggerService,
       metricsService
@@ -82,7 +82,7 @@ describe('SearchAndScoreRepositoriesUseCase', () => {
       new InMemoryQueryCacheService(),
       new InFlightRequestsRegistry(),
       new CacheKeyFactory(),
-      new RepositoryScoringService(),
+      new RepositoryScoringService({ formulaVersion: 'v1' }),
       300,
       appLoggerService,
       metricsService
