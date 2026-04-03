@@ -1,4 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { AppLoggerService } from '../../../../common/observability/app-logger.service';
+import { LogContext } from '../../../../common/observability/log-context.enum';
+import { MetricsService } from '../../../../common/observability/metrics.service';
 import {
   GithubRepositoryProvider,
   SearchRepositoriesParams
@@ -37,14 +40,33 @@ export class SearchAndScoreRepositoriesUseCase {
     private readonly inFlightRequestsRegistry: InFlightRequestsRegistry,
     private readonly cacheKeyFactory: CacheKeyFactory,
     private readonly repositoryScoringService: RepositoryScoringService,
-    @Inject(REPOSITORIES_CACHE_TTL_SECONDS) private readonly cacheTtlSeconds: number
+    @Inject(REPOSITORIES_CACHE_TTL_SECONDS) private readonly cacheTtlSeconds: number,
+    private readonly appLoggerService: AppLoggerService,
+    private readonly metricsService: MetricsService
   ) {}
 
   async execute(input: SearchAndScoreRepositoriesInput): Promise<RepositoriesResponse> {
+    this.appLoggerService.info('Repositories search started', LogContext.SEARCH_AND_SCORE_REPOSITORIES_USE_CASE, {
+      language: input.language ?? null,
+      createdAfter: input.createdAfter ?? null,
+      page: input.page ?? null,
+      limit: input.limit ?? null
+    });
     const page = this.normalizePage(input.page);
     const limit = this.normalizeLimit(input.limit);
     const processedRepositories = await this.getProcessedRepositories(input);
-    return this.paginateAndShape(processedRepositories, page, limit);
+    const response = this.paginateAndShape(processedRepositories, page, limit);
+    this.appLoggerService.info(
+      'Repositories search finished',
+      LogContext.SEARCH_AND_SCORE_REPOSITORIES_USE_CASE,
+      {
+        page: response.meta.page,
+        limit: response.meta.limit,
+        total: response.meta.total,
+        returnedItems: response.items.length
+      }
+    );
+    return response;
   }
 
   private async getProcessedRepositories(
@@ -53,11 +75,35 @@ export class SearchAndScoreRepositoriesUseCase {
     const cacheKey = this.buildBaseCacheKey(input.language, input.createdAfter);
     const cached = await this.queryCache.get<ScoredRepository[]>(cacheKey);
     if (cached) {
+      this.metricsService.incrementCacheHit();
+      this.appLoggerService.info(
+        'Cache hit for processed repositories',
+        LogContext.SEARCH_AND_SCORE_REPOSITORIES_USE_CASE,
+        {
+          cacheKey
+        }
+      );
       return cached;
     }
 
+    this.metricsService.incrementCacheMiss();
+    this.appLoggerService.info(
+      'Cache miss for processed repositories',
+      LogContext.SEARCH_AND_SCORE_REPOSITORIES_USE_CASE,
+      {
+        cacheKey
+      }
+    );
+
     const inFlight = this.inFlightRequestsRegistry.get<ScoredRepository[]>(cacheKey);
     if (inFlight) {
+      this.appLoggerService.info(
+        'Using in-flight request',
+        LogContext.SEARCH_AND_SCORE_REPOSITORIES_USE_CASE,
+        {
+          cacheKey
+        }
+      );
       return inFlight;
     }
 
@@ -86,6 +132,14 @@ export class SearchAndScoreRepositoriesUseCase {
     createdAfter?: string;
     cacheKey: string;
   }): Promise<ScoredRepository[]> {
+    this.appLoggerService.info(
+      'Fetching repositories from provider',
+      LogContext.SEARCH_AND_SCORE_REPOSITORIES_USE_CASE,
+      {
+        language: params.language ?? null,
+        createdAfter: params.createdAfter ?? null
+      }
+    );
     const repositories = await this.githubRepositoryProvider.searchRepositories({
       language: params.language,
       createdAfter: params.createdAfter
@@ -96,6 +150,14 @@ export class SearchAndScoreRepositoriesUseCase {
       .sort((a, b) => b.popularityScore - a.popularityScore);
 
     await this.queryCache.set(params.cacheKey, scoredRepositories, this.cacheTtlSeconds);
+    this.appLoggerService.info(
+      'Processed repositories cached',
+      LogContext.SEARCH_AND_SCORE_REPOSITORIES_USE_CASE,
+      {
+        cacheKey: params.cacheKey,
+        totalItems: scoredRepositories.length
+      }
+    );
     return scoredRepositories;
   }
 

@@ -1,3 +1,6 @@
+import { AppLoggerService } from '../../../../common/observability/app-logger.service';
+import { MetricsService } from '../../../../common/observability/metrics.service';
+import { RequestContextService } from '../../../../common/observability/request-context.service';
 import { GithubRepositoryProvider } from '../../domain/interfaces/github-repository.provider';
 import { Repository } from '../../domain/models/repository.model';
 import { RepositoryScoringService } from '../../domain/services/repository-scoring.service';
@@ -22,6 +25,10 @@ function createRepository(id: number, stars: number): Repository {
 }
 
 describe('SearchAndScoreRepositoriesUseCase', () => {
+  const requestContextService = new RequestContextService();
+  const appLoggerService = new AppLoggerService(requestContextService);
+  const metricsService = new MetricsService();
+
   it('reuses processed cache across different pages for the same base filters', async () => {
     const repositories = [createRepository(1, 10), createRepository(2, 100), createRepository(3, 50)];
     const githubRepositoryProvider: GithubRepositoryProvider = {
@@ -34,7 +41,9 @@ describe('SearchAndScoreRepositoriesUseCase', () => {
       new InFlightRequestsRegistry(),
       new CacheKeyFactory(),
       new RepositoryScoringService(),
-      300
+      300,
+      appLoggerService,
+      metricsService
     );
 
     const page1 = await useCase.execute({
@@ -74,7 +83,9 @@ describe('SearchAndScoreRepositoriesUseCase', () => {
       new InFlightRequestsRegistry(),
       new CacheKeyFactory(),
       new RepositoryScoringService(),
-      300
+      300,
+      appLoggerService,
+      metricsService
     );
 
     const firstRequest = useCase.execute({

@@ -3,6 +3,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import Bottleneck from 'bottleneck';
 import { firstValueFrom } from 'rxjs';
 import { UpstreamErrorHandlerService } from '../../../../common/errors/upstream-error-handler.service';
+import { AppLoggerService } from '../../../../common/observability/app-logger.service';
+import { LogContext } from '../../../../common/observability/log-context.enum';
+import { MetricsService } from '../../../../common/observability/metrics.service';
 import { GITHUB_CLIENT_CONFIG, GithubClientConfig } from './github.config';
 
 export interface GithubRepositoryApiItem {
@@ -35,6 +38,8 @@ export class GithubClient {
   constructor(
     private readonly httpService: HttpService,
     private readonly upstreamErrorHandlerService: UpstreamErrorHandlerService,
+    private readonly appLoggerService: AppLoggerService,
+    private readonly metricsService: MetricsService,
     @Inject(GITHUB_CLIENT_CONFIG) private readonly config: GithubClientConfig
   ) {
     this.limiter = new Bottleneck({
@@ -61,6 +66,12 @@ export class GithubClient {
   }
 
   private async fetchRepositoriesPage(q: string, perPage: number, page: number): Promise<GithubSearchResponse> {
+    const startedAt = Date.now();
+    this.appLoggerService.info('GitHub API call started', LogContext.GITHUB_CLIENT, {
+      page,
+      perPage
+    });
+
     try {
       const response = await this.limiter.schedule(() =>
         firstValueFrom(
@@ -76,8 +87,25 @@ export class GithubClient {
         )
       );
 
+      const durationMs = Date.now() - startedAt;
+      this.metricsService.recordExternalApiLatency(durationMs);
+      this.appLoggerService.info('GitHub API call finished', LogContext.GITHUB_CLIENT, {
+        page,
+        perPage,
+        durationMs,
+        items: response.data.items?.length ?? 0
+      });
+
       return response.data;
     } catch (error) {
+      const durationMs = Date.now() - startedAt;
+      this.metricsService.recordExternalApiLatency(durationMs);
+      this.appLoggerService.error(
+        'GitHub API call failed',
+        LogContext.GITHUB_CLIENT,
+        { page, perPage, durationMs },
+        error
+      );
       this.upstreamErrorHandlerService.handle(error, {
         serviceName: 'GitHub',
         timeoutMessage: 'GitHub request timed out',
