@@ -58,6 +58,16 @@ describe('RepositoryScoringService', () => {
     });
   });
 
+  it('does not produce NaN for malformed numeric values', () => {
+    const service = new RepositoryScoringService({ formulaVersion: 'v1' });
+    const result = service.scoreRepository(buildRepository({ stars: Number.NaN, forks: -10 }), now);
+
+    expect(Number.isFinite(result.scoreBreakdown.stars)).toBe(true);
+    expect(Number.isFinite(result.scoreBreakdown.forks)).toBe(true);
+    expect(Number.isFinite(result.scoreBreakdown.recency)).toBe(true);
+    expect(Number.isFinite(result.popularityScore)).toBe(true);
+  });
+
   it('exposes stable scoreFormulaVersion', () => {
     const service = new RepositoryScoringService({ formulaVersion: 'v2' });
     expect(service.scoreFormulaVersion).toBe('v2');
