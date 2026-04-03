@@ -8,7 +8,6 @@ export default () => ({
     token: process.env.GITHUB_TOKEN ?? '',
     fetchPerPage: Number(process.env.GITHUB_FETCH_PER_PAGE ?? 100),
     maxFetchPages: Number(process.env.GITHUB_MAX_FETCH_PAGES ?? 1),
-    maxFetchRepositories: Number(process.env.GITHUB_MAX_FETCH_REPOSITORIES ?? 100),
     requestTimeoutMs: Number(process.env.GITHUB_REQUEST_TIMEOUT_MS ?? 5000)
   },
   scoring: {

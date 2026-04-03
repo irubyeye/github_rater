@@ -78,7 +78,6 @@ GitHub:
 - `GITHUB_TOKEN` (optional)
 - `GITHUB_FETCH_PER_PAGE` (default `100`)
 - `GITHUB_MAX_FETCH_PAGES` (default `1`)
-- `GITHUB_MAX_FETCH_REPOSITORIES` (default `100`)
 - `GITHUB_REQUEST_TIMEOUT_MS` (default `5000`)
 
 Scoring:

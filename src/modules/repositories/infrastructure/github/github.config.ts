@@ -14,7 +14,6 @@ const githubClientConfigSchema = z.object({
 const githubSearchConfigSchema = z.object({
   fetchPerPage: z.number().int().min(1).max(100),
   maxFetchPages: z.number().int().min(1),
-  maxFetchRepositories: z.number().int().min(1)
 });
 
 export type GithubClientConfig = z.infer<typeof githubClientConfigSchema>;
@@ -36,6 +35,5 @@ export function createGithubSearchConfig(configService: ConfigService<AppConfig,
   return githubSearchConfigSchema.parse({
     fetchPerPage: configService.get('github.fetchPerPage', { infer: true }),
     maxFetchPages: configService.get('github.maxFetchPages', { infer: true }),
-    maxFetchRepositories: configService.get('github.maxFetchRepositories', { infer: true })
   });
 }
