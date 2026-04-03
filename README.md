@@ -241,13 +241,28 @@ npm run test:load:100:nocache
 
 ## Docker
 
-Build image:
+With docker compose:
+
+```bash
+docker compose up --build
+```
+
+Compose uses a named volume:
+- `github-rater-data` mounted at `/app/data`
+
+Stop compose stack:
+
+```bash
+docker compose down
+```
+
+Direct docker build:
 
 ```bash
 docker build -t github-rater .
 ```
 
-Run container:
+Direct docker run:
 
 ```bash
 docker run --rm -p 3000:3000 --env-file .env github-rater
@@ -277,3 +292,17 @@ docker run --rm -p 3000:3000 --env-file .env github-rater
 - Background refresh/prefetch
 - Persistent storage for snapshots
 - External metrics/tracing (Prometheus/Grafana, OpenTelemetry)
+
+## CI/CD
+
+GitHub Actions workflows:
+- `CI` (`.github/workflows/ci.yml`)
+  - install
+  - build
+  - unit tests
+  - mocked e2e tests
+- `CD` (`.github/workflows/cd.yml`)
+  - build Docker image on `main`
+  - push image to GHCR:
+    - `ghcr.io/<owner>/github-rater:latest`
+    - `ghcr.io/<owner>/github-rater:sha-...`
