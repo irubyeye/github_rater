@@ -1,5 +1,4 @@
 import { Repository } from '../models/repository.model';
-import { SCORE_FORMULA_VERSION } from '../models/score-formula-version.model';
 import { RepositoryScoringService } from './repository-scoring.service';
 
 const now = new Date('2026-01-10T00:00:00.000Z');
@@ -22,7 +21,7 @@ function buildRepository(overrides: Partial<Repository> = {}): Repository {
 
 describe('RepositoryScoringService', () => {
   it('increases score when stars increase', () => {
-    const service = new RepositoryScoringService();
+    const service = new RepositoryScoringService({ formulaVersion: 'v1' });
     const lowStars = service.scoreRepository(buildRepository({ stars: 10 }), now);
     const highStars = service.scoreRepository(buildRepository({ stars: 100 }), now);
 
@@ -31,7 +30,7 @@ describe('RepositoryScoringService', () => {
   });
 
   it('increases score when forks increase', () => {
-    const service = new RepositoryScoringService();
+    const service = new RepositoryScoringService({ formulaVersion: 'v1' });
     const lowForks = service.scoreRepository(buildRepository({ forks: 5 }), now);
     const highForks = service.scoreRepository(buildRepository({ forks: 50 }), now);
 
@@ -40,7 +39,7 @@ describe('RepositoryScoringService', () => {
   });
 
   it('gives higher recency for fresher pushedAt', () => {
-    const service = new RepositoryScoringService();
+    const service = new RepositoryScoringService({ formulaVersion: 'v1' });
     const stale = service.scoreRepository(buildRepository({ pushedAt: new Date('2025-10-01T00:00:00.000Z') }), now);
     const fresh = service.scoreRepository(buildRepository({ pushedAt: new Date('2026-01-09T00:00:00.000Z') }), now);
 
@@ -49,7 +48,7 @@ describe('RepositoryScoringService', () => {
   });
 
   it('returns scoreBreakdown components', () => {
-    const service = new RepositoryScoringService();
+    const service = new RepositoryScoringService({ formulaVersion: 'v1' });
     const result = service.scoreRepository(buildRepository(), now);
 
     expect(result.scoreBreakdown).toEqual({
@@ -59,10 +58,18 @@ describe('RepositoryScoringService', () => {
     });
   });
 
-  it('exposes stable scoreFormulaVersion', () => {
-    const service = new RepositoryScoringService();
+  it('does not produce NaN for malformed numeric values', () => {
+    const service = new RepositoryScoringService({ formulaVersion: 'v1' });
+    const result = service.scoreRepository(buildRepository({ stars: Number.NaN, forks: -10 }), now);
 
-    expect(service.scoreFormulaVersion).toBe(SCORE_FORMULA_VERSION);
-    expect(service.scoreFormulaVersion).toBe('v1');
+    expect(Number.isFinite(result.scoreBreakdown.stars)).toBe(true);
+    expect(Number.isFinite(result.scoreBreakdown.forks)).toBe(true);
+    expect(Number.isFinite(result.scoreBreakdown.recency)).toBe(true);
+    expect(Number.isFinite(result.popularityScore)).toBe(true);
+  });
+
+  it('exposes stable scoreFormulaVersion', () => {
+    const service = new RepositoryScoringService({ formulaVersion: 'v2' });
+    expect(service.scoreFormulaVersion).toBe('v2');
   });
 });

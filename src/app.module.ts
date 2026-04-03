@@ -1,7 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import configuration from './common/config/configuration';
-import { envValidationSchema } from './common/config/env.validation';
+import { validateEnv } from './common/config/env.validation';
 import { ObservabilityModule } from './common/observability/observability.module';
 import { RequestLoggingMiddleware } from './common/observability/request-logging.middleware';
 import { HealthModule } from './modules/health/health.module';
@@ -12,7 +12,7 @@ import { RepositoriesModule } from './modules/repositories/repositories.module';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      validationSchema: envValidationSchema
+      validate: validateEnv
     }),
     ObservabilityModule,
     HealthModule,

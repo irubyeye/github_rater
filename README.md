@@ -147,7 +147,7 @@ Response:
 Version:
 
 ```ts
-scoreFormulaVersion = "v1"
+scoreFormulaVersion = process.env.SCORE_FORMULA_VERSION ?? "v1"
 ```
 
 Formula:
@@ -158,6 +158,14 @@ forksComponent = log(forks + 1) * forksWeight
 recencyComponent = exp(-recencyDecay * daysSinceLastPush) * recencyWeight
 popularityScore = starsComponent + forksComponent + recencyComponent
 ```
+
+`scoreFormulaVersion` is read from `SCORE_FORMULA_VERSION` (default `v1`).
+
+Sorting (deterministic):
+1. `popularityScore` DESC
+2. `stars` DESC
+3. `forks` DESC
+4. `id` ASC
 
 Recency uses `pushed_at`.
 
@@ -187,6 +195,10 @@ Trade-off:
 - Optional auth via `GITHUB_TOKEN`
 - Outbound throttling via Bottleneck
 - Timeouts and upstream error mapping (`429`/`503`)
+- Upstream data normalization:
+  - invalid date fields are skipped
+  - invalid `stars`/`forks` values are sanitized to `0`
+  - scoring guards prevent `NaN` propagation
 
 ## Observability
 
@@ -215,6 +227,12 @@ Unit tests:
 ```bash
 npm test -- --runInBand
 ```
+
+Unit coverage includes:
+- cache behavior changes when `scoreFormulaVersion` changes
+- malformed numeric values do not produce `NaN` scores
+- invalid upstream dates are handled safely
+- deterministic sorting tie-breakers
 
 Mocked e2e:
 

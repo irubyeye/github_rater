@@ -25,9 +25,11 @@ export class GithubRepositoryProviderImpl implements GithubRepositoryProvider {
     const items = await this.githubClient.searchRepositories({
       q,
       perPage: this.config.fetchPerPage,
-      maxPages: this.config.maxFetchPages,
+      maxPages: this.config.maxFetchPages
     });
 
-    return items.map((item) => this.githubMapper.toRepository(item));
+    return items
+      .map((item) => this.githubMapper.toRepository(item))
+      .filter((repository): repository is Repository => repository !== null);
   }
 }
