@@ -52,15 +52,35 @@ export class RepositoryScoringService {
 
   private calculateScoreBreakdown(repository: Repository, now: Date): RepositoryScoreBreakdown {
     const daysSinceLastPush = Math.max(0, (now.getTime() - repository.pushedAt.getTime()) / (1000 * 60 * 60 * 24));
+    const starsCount = this.sanitizeCount(repository.stars);
+    const forksCount = this.sanitizeCount(repository.forks);
 
-    const stars = Math.log(repository.stars + 1) * this.config.starsWeight;
-    const forks = Math.log(repository.forks + 1) * this.config.forksWeight;
-    const recency = Math.exp(-this.config.recencyDecay * daysSinceLastPush) * this.config.recencyWeight;
+    const stars = this.toFiniteNumber(Math.log(starsCount + 1) * this.config.starsWeight);
+    const forks = this.toFiniteNumber(Math.log(forksCount + 1) * this.config.forksWeight);
+    const recency = this.toFiniteNumber(
+      Math.exp(-this.config.recencyDecay * this.toFiniteNumber(daysSinceLastPush)) * this.config.recencyWeight
+    );
 
     return {
       stars,
       forks,
       recency
     };
+  }
+
+  private sanitizeCount(value: number): number {
+    if (!Number.isFinite(value) || value < 0) {
+      return 0;
+    }
+
+    return Math.floor(value);
+  }
+
+  private toFiniteNumber(value: number): number {
+    if (!Number.isFinite(value) || Number.isNaN(value)) {
+      return 0;
+    }
+
+    return value;
   }
 }
